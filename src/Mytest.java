@@ -32,38 +32,40 @@ public class Mytest {
     public static ArrayList<Document> sdocs = new ArrayList<Document>();
     public ArrayList<String> j_listFileName = new ArrayList<String>();
     public ArrayList<String> s_listFileName = new ArrayList<String>();
+    // key java api_signature,value top-10 swift apis 
     public HashMap<String, ArrayList<String>> result = new HashMap<String, ArrayList<String>>();
 
     public String save_path = "/Users/sally/Downloads/tmap/tmap_res/";
 
     public static void main(String[] args) {
         Mytest mytest = new Mytest();
-        //读取所有的swiftjson 保存APIType
+       
         String filename = "/Users/sally/Downloads/tmap/APISIM/data/swift/String.json";
         try {
 
             String java_path = "/Users/sally/Downloads/tmap/tmap_data/tmapdata_java/";
             String swift_path = "/Users/sally/Downloads/tmap/tmap_data/tmapdata_swift/";
-
+            //1. get all java classes path
             getAllFileName(java_path, mytest.j_listFileName);
             System.out.println("java docs path size: " + mytest.j_listFileName.size());
-
+            //2. get all swift classes path
             getAllFileName(swift_path, mytest.s_listFileName);
             System.out.println("swift docs path size: " + mytest.s_listFileName.size());
+            //3. save every java API into mytest.jdocs
             for (String j_file : mytest.j_listFileName) {
                 mytest.readjsonToDoc(j_file, mytest.jdocs);
             }
-            //为每一个swift method创建doc,存入mytest.sdocs
+            //4. save every swift API into mytest.sdocs
             for (String s_file : mytest.s_listFileName) {
                 mytest.readjsonToDoc(s_file, mytest.sdocs);
             }
 
             System.out.println("swift docs: " + mytest.sdocs.size());
-            //创建indexer
+            //4.create indexer for all swift APIs
             mytest.Indexer(mytest.sdocs);
             System.out.println("java docs: " + mytest.jdocs.size());
 
-            //为每一个Java api创建query,并进行search
+            //5. create a query for a java API, rank all the swift APIs and save the results into mytest.result.
             int i = 0;
             for (Document doc : mytest.jdocs) {
                 if (doc.get("mename").contentEquals("init")) {
@@ -96,7 +98,7 @@ public class Mytest {
         }
     }
 
-    //存储结果单元至给定本地路径
+    //save all java APIs into given filepath
     public void saveFiles(String filePath)
     {
         try {
@@ -142,7 +144,7 @@ public class Mytest {
         }
     }
 
-    //将json文件转换为API文档存储起来
+    // create doc and save into @param docs
     public void readjsonToDoc(String filename, ArrayList<Document> docs) throws IOException {
         File f = new File(filename);
         String jsonString = FileUtils.readFileToString(f);
@@ -175,7 +177,7 @@ public class Mytest {
         }
 
     }
-
+    //create document
     public Document createDocument(MyAPIMtd mtd) {
 
         Document doc = new Document();
@@ -192,7 +194,7 @@ public class Mytest {
         //System.out.println("docID :" + doc.toString());
         return doc;
     }
-
+    // save into Indexer
     public void Indexer(List<Document> docs) throws IOException {
 
         Directory dir = FSDirectory.open(Paths.get(s));
@@ -208,7 +210,7 @@ public class Mytest {
         System.out.println("DOC NUMS :" + writer.numRamDocs());
         writer.close();
     }
-
+    // create five quries
     public ArrayList<Query> createQueryList(Document doc) {
         ArrayList<Query> JQueryList = new ArrayList<Query>();
         List<String[]> querylist = new ArrayList<String[]>();
@@ -292,7 +294,7 @@ public class Mytest {
         }
         return JQueryList;
     }
-    //将querylist中的所有query得到的结果重新排序，放入到结果中
+    // rank the all documents for queryList, recompute the similarity and return ranking API list.
     public List customRanking(List<Query> queryList){
         ArrayList<String> res=new ArrayList<String>();
         try {
@@ -357,6 +359,7 @@ public class Mytest {
         }
         return res;
     }
+    // create a query
     public Query createQuery(BooleanClause.Occur[] flags,
                              String[] queries, String[] fields){
         Query query = null;
@@ -374,6 +377,7 @@ public class Mytest {
         System.out.println(query==null);
         return query;
     }
+    //search  top-10 document for a given query
     public List search(Query query) throws IOException {
         ArrayList<String> res=new ArrayList<String>();
         Directory directory = FSDirectory.open(Paths.get(s));
@@ -390,40 +394,6 @@ public class Mytest {
         ScoreDoc[] scoreDocs = topDocs.scoreDocs;
         List<ScoreDoc> scoreDocs1 = Arrays.asList(scoreDocs);
         return scoreDocs1;
-    }
-
-
-
-    public ArrayList search1(Query query) throws IOException {
-        ArrayList<String> res=new ArrayList<String>();
-        Directory directory = FSDirectory.open(Paths.get(s));
-        // 索引读取工具
-        IndexReader reader = DirectoryReader.open(directory);
-        // 索引搜索工具
-        System.out.println("count: "+reader.numDocs());
-        IndexSearcher searcher = new IndexSearcher(reader);
-        //System.out.println(reader.getTermVectors().toString());
-        TopDocs topDocs = searcher.search(query, 10);
-        // 获取总条数
-        System.out.println("本次搜索共找到" + topDocs.totalHits + "条数据");
-        // 获取得分文档对象（ScoreDoc）数组.SocreDoc中包含：文档的编号、文档的得分
-        ScoreDoc[] scoreDocs = topDocs.scoreDocs;
-        for (ScoreDoc scoreDoc : scoreDocs) {
-        // 取出文档编号
-        int docID = scoreDoc.doc;
-        // 根据编号去找文档
-        Document doc = reader.document(docID);
-        System.out.println("query: " + query.toString()+"---------\n");
-        System.out.println("id: " + doc.get("classname"));
-        System.out.println("mename: " + doc.get("mename"));
-        res.add(doc.get("apisig")) ;
-            System.out.println("apisig: " + doc.get("apisig"));
-        // 取出文档得分
-        System.out.println("得分： " + scoreDoc.score);
-        System.out.println(docID+"------------------------------------------"+reader.numDocs());
-
-        }
-        return res;
     }
 
 
